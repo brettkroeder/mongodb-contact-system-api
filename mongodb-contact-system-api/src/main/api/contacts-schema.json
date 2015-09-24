@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://jsonschema.net",
+  "type": "object",
+  "properties": {
+    "contactId": {
+      "id": "http://jsonschema.net/first_name",
+      "type": "string"
+    },
+    "firstName": {
+      "id": "http://jsonschema.net/first_name",
+      "type": "string"
+    },
+    "lastName": {
+      "id": "http://jsonschema.net/last_name",
+      "type": "string"
+    },
+    "primaryEmail": {
+      "id": "http://jsonschema.net/email",
+      "type": "string"
+    },
+    "mobilePhone": {
+      "id": "http://jsonschema.net/country",
+      "type": "string"
+    }
+  }
+}

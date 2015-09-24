@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "/",
+  "type": "object",
+  "properties": {
+    "contactId": {
+      "id": "contactId",
+      "type": "string"
+    },
+    "firstName": {
+      "id": "firstName",
+      "type": "string"
+    },
+    "lastName": {
+      "id": "lastName",
+      "type": "string"
+    },
+    "primaryEmail": {
+      "id": "primaryEmail",
+      "type": "string"
+    },
+    "mobilePhone": {
+      "id": "mobilePhone",
+      "type": "string"
+    }
+  }
+}

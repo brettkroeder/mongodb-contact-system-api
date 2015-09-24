@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <http:listener-config name="contact-api-httpListenerConfig" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration" />
+    <apikit:config name="contact-api-config" raml="contact-api.raml" consoleEnabled="true" consolePath="console" doc:name="Router" />
+    <flow name="contact-api-main">
+        <http:listener config-ref="contact-api-httpListenerConfig" path="/api/*" doc:name="HTTP" />
+        <apikit:router config-ref="contact-api-config" doc:name="APIkit Router" />
+        <logger message="#[flow.name.toUpperCase()]" level="INFO" doc:name="Logger"/>
+        <exception-strategy ref="contact-api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy" />
+    </flow>
+    <flow name="put:/contact/{contactId}:application/json:contact-api-config">
+        <logger message="#[flow.name.toUpperCase()]" level="INFO" doc:name="Logger"/>
+        <dw:transform-message doc:name="Map to Canonical format">
+            <dw:input-payload doc:sample="json.json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+        <mongo:update-documents config-ref="Mongo_DB" collection="${collection}" multi="false" element-ref="#[new org.bson.Document(payload)]" query-ref="contactId: #[message.inboundProperties.'http.uri.params'.contactId]" doc:name="Update Contact"/>
+        <dw:transform-message doc:name="Map response message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	message: payload
+}]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="delete:/contact/{contactId}:contact-api-config">
+        <logger message="#[flow.name.toUpperCase()]" level="INFO" doc:name="Logger"/>
+        <mongo:remove-documents config-ref="Mongo_DB" collection="${collection}" query-ref="#['{ contactId: &quot;' + message.inboundProperties.'http.uri.params'.contactId +'&quot;}']" doc:name="Delete Contact"/>
+        <dw:transform-message doc:name="Map response message">
+            <dw:input-inbound-property doc:sample="map_string_string.dwl" propertyName="http.uri.params"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	message: "successfully deleted ContactID: " ++ inboundProperties['http.uri.params'].contactId
+}]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="get:/contact/{contactId}:contact-api-config">
+        <logger message="#[flow.name.toUpperCase()]" level="INFO" doc:name="Logger"/>
+        <mongo:find-one-document config-ref="Mongo_DB" collection="${collection}" query-ref="#['{ contactId: &quot;' + message.inboundProperties.'http.uri.params'.contactId +'&quot;}']" failOnNotFound="false" doc:name="Get Contact by ID"/>
+        <dw:transform-message doc:name="Map response message">
+            <dw:input-payload doc:sample="MyPojo_1.dwl"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+using (p = payload)
+{
+	contactId: p.contactId,
+	firstName: p.firstName,
+	lastName: p.lastName,
+	primaryEmail: p.primaryEmail,
+	mobilePhone: p.mobilePhone
+}]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="post:/contact:application/json:contact-api-config">
+        <logger message="#[flow.name.toUpperCase()]" level="INFO" doc:name="Logger"/>
+        <dw:transform-message doc:name="Map to Canonical format">
+            <dw:input-payload doc:sample="json_1.json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+        <mongo:insert-document config-ref="Mongo_DB" collection="${collection}" document-ref="#[new org.bson.Document(payload)]" doc:name="Insert Contact"/>
+        <dw:transform-message doc:name="Map response message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	message: "Contact added. Mongo ID =" ++ payload
+}]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="get:/contacts:contact-api-config">
+        <logger message="#[flow.name.toUpperCase()]" level="INFO" doc:name="Logger"/>
+        <mongo:find-documents config-ref="Mongo_DB" collection="${collection}" doc:name="Get ALL Contacts"/>
+        <dw:transform-message doc:name="Map response message">
+            <dw:input-payload doc:sample="unknown.dwl"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+using (p = payload)
+( p map {
+    contactId: $.contactId,
+    firstName: $.firstName,
+    lastName: $.lastName,
+    primaryEmail: $.primaryEmail,
+    mobilePhone: $.mobilePhone
+	}
+)]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <apikit:mapping-exception-strategy name="contact-api-apiKitGlobalExceptionMapping">
+        <apikit:mapping statusCode="404">
+            <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="405">
+            <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="415">
+            <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="406">
+            <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="400">
+            <apikit:exception value="org.mule.module.apikit.exception.BadRequestException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+    </apikit:mapping-exception-strategy>
+</mule>

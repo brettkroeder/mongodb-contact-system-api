@@ -1,0 +1,62 @@
+#%RAML 0.8
+#baseUri: http://mocksvc.mulesoft.com/mocks/8ec2da59-17af-43f8-9cfa-b56f1a24d388
+baseUri: http://mocksvc.mulesoft.com/mocks/bbd30e9a-a262-4116-9e6b-511a540fc39e/mocks/8ec2da59-17af-43f8-9cfa-b56f1a24d388
+title: Contact API
+version: 1.0
+/contact:
+  post:
+    description: insert a new contact
+    body:
+      application/json:
+        schema: !include contact-schema.json
+        example: !include contact-example.json
+    responses:
+      200:
+        body:
+          application/json:
+            schema: !include message-schema.json
+            example: |
+              { "message": "Contact inserted" }
+  /{contactId}:
+    uriParameters:
+      contactId:
+        type: string
+        required: true
+        example: 1
+    get:
+      description: retrieve by contact ID
+      responses:
+        200:
+          body:
+            application/json:
+              schema: !include contact-schema.json
+              example: !include contact-example.json
+    delete:
+      responses:
+        200:
+          body:
+            application/json:
+              schema: !include message-schema.json
+              example: |
+                { "message": "Contact inserted" }
+    put:
+      body:
+        application/json:
+          schema: !include contact-schema.json
+          example: !include contact-example.json
+      responses:
+        200:
+          body:
+            application/json:
+              schema: !include message-schema.json
+              example: |
+                { "message": "Contact updated" }
+/contacts:
+  get:
+    description: query contacts
+    responses:
+      200: 
+        body:
+          application/json:
+            schema: !include contacts-schema.json
+            example: !include contacts-example.json
